@@ -120,6 +120,7 @@ Copter::Copter(void) :
 #if AP_TERRAIN_AVAILABLE
     terrain(ahrs, mission, rally),
 #endif
+
 //#if AC_PrecLand == ENABLED
     precland(ahrs, inertial_nav),
 //#endif

@@ -149,6 +149,7 @@ void AC_PrecLand::calc_angles_and_pos(float alt_above_terrain_cm)
     float alt = max(alt_above_terrain_cm, 50.0f);
 
     // convert earth-frame angles to earth-frame position offset
+
     _target_pos_offset.x = alt*tanf(_ef_angle_to_target.x);
     _target_pos_offset.y = alt*tanf(_ef_angle_to_target.y);
     _target_pos_offset.z = 0;  // not used
