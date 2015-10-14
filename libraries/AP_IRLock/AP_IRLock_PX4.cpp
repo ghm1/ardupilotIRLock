@@ -62,6 +62,8 @@ bool AP_IRLock_PX4::update()
 //TMS		_current_frame[count].center_y = report.center_y;
         _current_frame[count].angle_x = report.angle_x; //TMSnote this is an angle
         _current_frame[count].angle_y = report.angle_y; //TMSnote this is an angle
+        //hal.console->printf("report_angle_x: %f\n", report.angle_x);
+        //hal.console->printf("_current_frame_angle_x: %f\n\n", _current_frame[count].angle_x);
 //TMS		_current_frame[count].height = report.height;
 //TMS        _current_frame[count].width = report.width;
         _current_frame[count].size_x = report.size_x;
@@ -74,6 +76,8 @@ bool AP_IRLock_PX4::update()
 
 	// update num_blocks and implement timeout
 	if (count > 0) {
+	    //ghm1
+	    //hal.console->printf("count: %u\n", count);
 	    _num_blocks = count;
 	} else if ((hal.scheduler->millis() - _last_update) > IRLOCK_TIMEOUT_MS) {
 	    _num_blocks = 0;

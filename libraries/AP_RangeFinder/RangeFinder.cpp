@@ -14,6 +14,11 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+//ghm1 test
+//#ifndef CONFIG_HAL_BOARD
+//#define CONFIG_HAL_BOARD HAL_BOARD_PX4
+//#endif
+
 #include "RangeFinder.h"
 #include "AP_RangeFinder_analog.h"
 #include "AP_RangeFinder_PulsedLightLRF.h"
@@ -21,6 +26,8 @@
 #include "AP_RangeFinder_PX4.h"
 #include "AP_RangeFinder_PX4_PWM.h"
 #include "AP_RangeFinder_BBB_PRU.h"
+
+extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters
 const AP_Param::GroupInfo RangeFinder::var_info[] PROGMEM = {
@@ -196,6 +203,9 @@ RangeFinder::RangeFinder(void) :
     // init state and drivers
     memset(state,0,sizeof(state));
     memset(drivers,0,sizeof(drivers));
+
+    //ghm1: force activation of RangeFinder Px4 -> better activation over MP
+    //_type[0] = RangeFinder::RangeFinder_Type::RangeFinder_TYPE_PX4;
 }
 
 /*
@@ -286,6 +296,12 @@ void RangeFinder::detect_instance(uint8_t instance)
         if (AP_RangeFinder_PX4::detect(*this, instance)) {
             state[instance].instance = instance;
             drivers[instance] = new AP_RangeFinder_PX4(*this, instance, state[instance]);
+            hal.console->printf("RangeFinder::detect_instance: init AP_RangeFinder_PX4\n");
+            /*if(drivers[instance] == NULL)
+            {
+                hal.console->printf("RangeFinder::detect_instance: AP_RangeFinder_PX4 is NULL\n");
+            }*/
+
             return;
         }
     }

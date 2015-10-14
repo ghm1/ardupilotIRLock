@@ -312,6 +312,7 @@ bool Copter::position_ok()
 {
     // return false if ekf failsafe has triggered
     if (failsafe.ekf) {
+        hal.console->printf("Copter::position_ok: failsafe.ekf\n");
         return false;
     }
 
@@ -324,6 +325,7 @@ bool Copter::ekf_position_ok()
 {
     if (!ahrs.have_inertial_nav()) {
         // do not allow navigation with dcm position
+        hal.console->printf("Copter::ekf_position_ok: not have_inertial_nav\n");
         return false;
     }
 
@@ -332,8 +334,12 @@ bool Copter::ekf_position_ok()
 
     // if disarmed we accept a predicted horizontal position
     if (!motors.armed()) {
+        //uint32_t valid = (filt_status.flags.horiz_pos_abs || filt_status.flags.pred_horiz_pos_abs);
+        //hal.console->printf("Copter::ekf_position_ok: motors NOT armed. STATUS: %u\n", valid );
         return ((filt_status.flags.horiz_pos_abs || filt_status.flags.pred_horiz_pos_abs));
     } else {
+        //uint32_t valid = (filt_status.flags.horiz_pos_abs && !filt_status.flags.const_pos_mode);
+        //hal.console->printf("Copter::ekf_position_ok: motors armed. STATUS: %u\n", valid );
         // once armed we require a good absolute position and EKF must not be in const_pos_mode
         return (filt_status.flags.horiz_pos_abs && !filt_status.flags.const_pos_mode);
     }

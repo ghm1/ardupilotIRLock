@@ -1,6 +1,9 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include "Copter.h"
+//#include <AP_HAL.h>
+
+extern const AP_HAL::HAL& hal;
 
 void Copter::init_barometer(bool full_calibration)
 {
@@ -42,14 +45,18 @@ int16_t Copter::read_sonar(void)
     // exit immediately if sonar is disabled
     if (sonar.status() != RangeFinder::RangeFinder_Good) {
         sonar_alt_health = 0;
+        //hal.console->printf("not RangeFinder::RangeFinder_Good\n");
         return 0;
     }
 
     int16_t temp_alt = sonar.distance_cm();
+    //hal.console->printf("RangeFinder: %u\n", sonar.distance_cm());
+    //hal.console->printf("RangeFinder: %i\n", temp_alt);
 
     if (temp_alt >= sonar.min_distance_cm() && 
         temp_alt <= sonar.max_distance_cm() * SONAR_RELIABLE_DISTANCE_PCT) {
         if ( sonar_alt_health < SONAR_ALT_HEALTH_MAX ) {
+            hal.console->printf("RangeFinder: we are healthy\n" );
             sonar_alt_health++;
         }
     }else{
@@ -57,6 +64,7 @@ int16_t Copter::read_sonar(void)
     }
 
  #if SONAR_TILT_CORRECTION == 1
+    hal.console->printf("RangeFinder: SONAR_TILT_CORRECTION\n" );
     // correct alt for angle of the sonar
     float temp = ahrs.cos_pitch() * ahrs.cos_roll();
     temp = max(temp, 0.707f);

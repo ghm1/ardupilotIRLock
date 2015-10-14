@@ -16,6 +16,12 @@
 
 #include <AP_HAL.h>
 
+//ghm1 test
+//#ifndef CONFIG_HAL_BOARD
+//#define CONFIG_HAL_BOARD HAL_BOARD_PX4
+//#endif
+
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #include "AP_RangeFinder_PX4.h"
 
@@ -34,6 +40,10 @@ extern const AP_HAL::HAL& hal;
 
 uint8_t AP_RangeFinder_PX4::num_px4_instances = 0;
 
+//ghm1 subscribtion
+/* file handle that will be used for subscribing */
+static int distance_sensor_px4flow_handle;
+
 /* 
    The constructor also initialises the rangefinder. Note that this
    constructor is not called until detect() returns true, so we
@@ -44,6 +54,9 @@ AP_RangeFinder_PX4::AP_RangeFinder_PX4(RangeFinder &_ranger, uint8_t instance, R
     _last_max_distance_cm(-1),
     _last_min_distance_cm(-1)
 {
+    //ok
+    //hal.console->printf("AP_RangeFinder_PX4 constructor call\n");
+
     _fd = open_driver();
 
     // consider this path used up
@@ -64,6 +77,10 @@ AP_RangeFinder_PX4::AP_RangeFinder_PX4(RangeFinder &_ranger, uint8_t instance, R
 
     // initialise to connected but no data
     set_status(RangeFinder::RangeFinder_NoData);
+
+    //ghm1 init subscribtion
+    /* subscribe to the topic */
+    distance_sensor_px4flow_handle = orb_subscribe(ORB_ID(distance_sensor));
 }
 
 /* 
@@ -108,8 +125,8 @@ void AP_RangeFinder_PX4::update(void)
     }
 
     struct distance_sensor_s range_report;
-    float sum = 0;
-    uint16_t count = 0;
+    //float sum = 0;
+    //uint16_t count = 0;
 
     if (_last_max_distance_cm != ranger._max_distance_cm[state.instance] ||
         _last_min_distance_cm != ranger._min_distance_cm[state.instance]) {
@@ -122,27 +139,48 @@ void AP_RangeFinder_PX4::update(void)
         }
     }
 
+    /* check to see whether the topic has updated since the last time we read it */
+    bool updated = false;
+    orb_check( distance_sensor_px4flow_handle, &updated);
+    if ( updated )
+    {
+        /* make a local copy of the updated data structure */
+        orb_copy(ORB_ID(distance_sensor), distance_sensor_px4flow_handle, &range_report);
 
-    while (::read(_fd, &range_report, sizeof(range_report)) == sizeof(range_report) &&
+        _last_timestamp = range_report.timestamp;
+
+        //convert from float/m to int/cm
+        state.distance_cm = range_report.current_distance * 100.0f;
+        //add offset to frame center
+        state.distance_cm += ranger._offset[state.instance];
+
+        //hal.console->printf("AP_RangeFinder_PX4: distance_cm %d\n", state.distance_cm);
+
+        // update range_valid state based on distance measured
+        update_status();
+    }
+
+    /*while (::read(_fd, &range_report, sizeof(range_report)) == sizeof(range_report) &&
            range_report.timestamp != _last_timestamp) {
             // take reading
             sum += range_report.current_distance;
             count++;
             _last_timestamp = range_report.timestamp;
-    }
+    }*/
 
     // if we have not taken a reading in the last 0.2s set status to No Data
     if (hal.scheduler->micros64() - _last_timestamp >= 200000) {
         set_status(RangeFinder::RangeFinder_NoData);
+        hal.console->printf("AP_RangeFinder_PX4: Timestamp to old.\n");
     }
 
-    if (count != 0) {
+    /*if (count != 0) {
         state.distance_cm = sum / count * 100.0f;
         state.distance_cm += ranger._offset[state.instance];
 
         // update range_valid state based on distance measured
         update_status();
-    }
+    }*/
 }
 
 #endif // CONFIG_HAL_BOARD

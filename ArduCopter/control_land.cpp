@@ -11,7 +11,16 @@ static bool land_pause;
 bool Copter::land_init(bool ignore_checks)
 {
     // check if we have GPS and decide which LAND we're going to do
-    land_with_gps = position_ok();
+    land_with_gps = (position_ok() || ignore_checks);
+    if(land_with_gps)
+    {
+        hal.console->printf("land with gps\n");
+    }
+    else
+    {
+        hal.console->printf("land without gps\n");
+    }
+
     if (land_with_gps) {
         // set target to stopping point
         Vector3f stopping_point;
@@ -41,8 +50,10 @@ bool Copter::land_init(bool ignore_checks)
 void Copter::land_run()
 {
     if (land_with_gps) {
+        //hal.console->printf("land_with_gps");
         land_gps_run();
     }else{
+        //hal.console->printf("land_nogps_run");
         land_nogps_run();
     }
 }
@@ -108,9 +119,19 @@ void Copter::land_gps_run()
     // process roll, pitch inputs
     wp_nav.set_pilot_desired_acceleration(roll_control, pitch_control);
 
+    //gcs_send_text_P(SEVERITY_HIGH, PSTR("land_gps_run"));
+    hal.console->printf("land_gps_run");
+
+#if PRECISION_LANDING == ENABLED
+    //debug output
+    //gcs_send_text_P(SEVERITY_HIGH, PSTR("precision landing active"));
+    hal.console->printf("precision landing active");
+#endif
+
 #if PRECISION_LANDING == ENABLED
     // run precision landing
     if (!ap.land_repo_active) {
+        hal.console->printf("shift_loiter_target");
         wp_nav.shift_loiter_target(precland.get_target_shift(wp_nav.get_loiter_target()));
     }
 #endif

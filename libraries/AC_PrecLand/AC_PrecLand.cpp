@@ -49,6 +49,10 @@ AC_PrecLand::AC_PrecLand(const AP_AHRS& ahrs, const AP_InertialNav& inav) :
 
     // other initialisation
     _backend_state.healthy = false;
+
+    //ghm1: initialize correctly
+    _enabled = 1;
+    _type = 2;
 }
 
 
@@ -121,6 +125,10 @@ Vector3f AC_PrecLand::get_target_shift(const Vector3f &orig_target)
     return shift;
 }
 
+
+int first = 1;
+uint32_t oldtime = 0;
+
 // calc_angles_and_pos - converts sensor's body-frame angles to earth-frame angles and position estimate
 //  body-frame angles stored in _bf_angle_to_target
 //  earth-frame angles stored in _ef_angle_to_target
@@ -154,5 +162,38 @@ void AC_PrecLand::calc_angles_and_pos(float alt_above_terrain_cm)
     _target_pos_offset.y = alt*tanf(_ef_angle_to_target.y);
     _target_pos_offset.z = 0;  // not used
 
+    if(first){
+        oldtime = hal.scheduler->millis();
+        first = 0;
+    }
+    uint32_t tnow = hal.scheduler->millis();
+    //message every second
+    uint32_t diff = tnow - oldtime;
+    if( diff > 1000 )
+    {
+        oldtime = tnow;
+
+        if(_have_estimate)
+        {
+            //hal.console->printf("estimate correct\n");
+        }
+        else
+        {
+            //hal.console->printf("no estimate\n");
+        }
+
+        /*hal.console->printf("roll: %f\n", _ahrs.roll);
+        hal.console->printf("pitch: %f\n", _ahrs.pitch);
+        hal.console->printf("bf_angle_to_target_x: %f\n", _bf_angle_to_target.x);
+        hal.console->printf("bf_angle_to_target_y: %f\n", _bf_angle_to_target.y);
+        hal.console->printf("ef_angle_to_target_x: %f\n", _ef_angle_to_target.x);
+        hal.console->printf("ef_angle_to_target_y: %f\n", _ef_angle_to_target.y);
+        hal.console->printf("alt_above_terrain_cm: %f\n", alt_above_terrain_cm);
+        hal.console->printf("target_pos_offset_x: %f\n", _target_pos_offset.x);
+        hal.console->printf("target_pos_offset_y: %f\n", _target_pos_offset.y);
+        hal.console->printf("\n");*/
+    }
+
+    //reset have_estimate
     _have_estimate = true;
 }

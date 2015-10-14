@@ -32,10 +32,11 @@
 #define IRLOCK_TIMEOUT_MS   100             // remove all blocks if no data received within 0.1 seconds
 
 typedef struct {
-    uint16_t angle_x;
-    uint16_t angle_y;
-    uint16_t size_x;
-    uint16_t size_y;
+    //ghm1: bugfix
+    float angle_x;
+    float angle_y;
+    float size_x;
+    float size_y;
     //uint16_t signature;
 	//uint16_t center_x;
 	//uint16_t center_y;

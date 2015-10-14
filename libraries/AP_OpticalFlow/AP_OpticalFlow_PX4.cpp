@@ -89,6 +89,7 @@ void AP_OpticalFlow_PX4::update(void)
 
         _update_frontend(state);
     }
+
 }
 
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_PX4

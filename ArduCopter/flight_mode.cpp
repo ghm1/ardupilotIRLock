@@ -32,6 +32,7 @@ bool Copter::set_mode(uint8_t mode)
             break;
 
         case STABILIZE:
+            hal.console->printf("mode change: STABILIZE\n");
             #if FRAME_CONFIG == HELI_FRAME
                 success = heli_stabilize_init(ignore_checks);
             #else
@@ -52,6 +53,7 @@ bool Copter::set_mode(uint8_t mode)
             break;
 
         case LOITER:
+            hal.console->printf("mode change: LOITER\n");
             success = loiter_init(ignore_checks);
             break;
 
@@ -60,6 +62,7 @@ bool Copter::set_mode(uint8_t mode)
             break;
 
         case LAND:
+            hal.console->printf("mode change: LAND\n");
             success = land_init(ignore_checks);
             break;
 
