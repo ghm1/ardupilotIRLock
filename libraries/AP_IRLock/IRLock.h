@@ -27,6 +27,7 @@
 #define IRLOCK_CENTER_X  159               // the center x pixel value
 #define IRLOCK_CENTER_Y  99                // the center y pixel value
 #define IRLOCK_NOBLOB_FRAME 10             // the number of consecutive similar frames that will cause the sensor validity variable to turn false
+//ghm1: not used anymore. actual parameters are in driver implementation
 #define IRLOCK_X_PIXEL_PER_DEGREE 5.374f   // the x pixel to angle calibration variable
 #define IRLOCK_Y_PIXEL_PER_DEGREE 5.698f   // the y pixel to angle calibration variable
 #define IRLOCK_TIMEOUT_MS   100             // remove all blocks if no data received within 0.1 seconds
@@ -69,6 +70,14 @@ public:
 	// get_angle_to_target - retrieve body frame x and y angles (in radians) to target
 	//  returns true if angles are available, false if not (i.e. no target)
 	bool get_angle_to_target(float &x_angle_rad, float &y_angle_rad) const;
+
+    // get_angles_to_targets - retrieve body frame x and y angles (in radians) to targets
+    //  returns true if angles are available and there are exactly two targets, false if not (i.e. no target)
+	bool get_angles_to_targets(float &x_angle_rad_1, float &y_angle_rad_1,
+	        float &x_angle_rad_2, float &y_angle_rad_2) const;
+
+	//get number of targets
+	void getNumOfTargets( uint8_t& numOfTargets ) const;
 
 protected:
 	struct AP_IRLock_Flags {

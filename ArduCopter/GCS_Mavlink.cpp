@@ -414,6 +414,26 @@ void NOINLINE Copter::send_rangefinder(mavlink_channel_t chan)
 }
 #endif
 
+#if PRECISION_LANDING == ENABLED
+void NOINLINE Copter::send_precise_landing(mavlink_channel_t chan)
+{
+    //const Vector2f bf_offset_to_target = precland.last_bf_offset_to_target();
+    uint8_t num = precland.getNumOfTargets();
+    float distance = precland.getAltitudeAboveTarget();
+    mavlink_msg_precise_landing_send(
+            chan,
+            num,
+            distance,
+            4.0,
+            5.0
+            /*precland.getNumOfTargets(),
+            precland.getAltitudeAboveTarget(),
+            bf_offset_to_target.x,
+            bf_offset_to_target.y*/
+            );
+}
+#endif
+
 
 /*
   send PID tuning message
@@ -500,7 +520,6 @@ bool Copter::telemetry_delayed(mavlink_channel_t chan)
     // we need to delay telemetry by the TELEM_DELAY time
     return true;
 }
-
 
 // try to send a message, return false if it won't fit in the serial tx buffer
 bool GCS_MAVLINK::try_send_message(enum ap_message id)
@@ -715,10 +734,16 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
         copter.send_pid_tuning(chan);
         break;
 
-    case MSG_VIBRATION:
+    /*case MSG_VIBRATION:
         CHECK_PAYLOAD_SIZE(VIBRATION);
         send_vibration(copter.ins);
+        break;*/
+
+    case MSG_PRECISE_LANDING:
+        CHECK_PAYLOAD_SIZE(PRECISE_LANDING);
+        copter.send_precise_landing(chan);
         break;
+
 
     case MSG_RETRY_DEFERRED:
         break; // just here to prevent a warning
@@ -944,7 +969,8 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_OPTICAL_FLOW);
         send_message(MSG_GIMBAL_REPORT);
         send_message(MSG_EKF_STATUS_REPORT);
-        send_message(MSG_VIBRATION);
+        //send_message(MSG_VIBRATION);
+        send_message(MSG_PRECISE_LANDING);
     }
 }
 

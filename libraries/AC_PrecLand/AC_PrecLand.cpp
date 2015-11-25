@@ -4,6 +4,8 @@
 #include <AC_PrecLand_Backend.h>
 #include <AC_PrecLand_Companion.h>
 #include <AC_PrecLand_IRLock.h>
+#include <AP_Math.h>
+#include <AP_Notify.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -28,6 +30,13 @@ const AP_Param::GroupInfo AC_PrecLand::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("SPEED",   2, AC_PrecLand, _speed_xy, AC_PRECLAND_SPEED_XY_DEFAULT),
 
+    // @Param: DEBUG_OUTPUT
+    // @DisplayName: Precision Land horizontal speed maximum in cm/s
+    // @Description: Precision Land horizontal speed maximum in cm/s
+    // @Values: 0:None, 1: alarm tone, 2:alarm tone and console output, 3:  console output
+    // @User: Advanced
+    //AP_GROUPINFO("DEBUG_OUTPUT",   3, AC_PrecLand, _debug_output, 0),
+
     AP_GROUPEND
 };
 
@@ -42,7 +51,8 @@ AC_PrecLand::AC_PrecLand(const AP_AHRS& ahrs, const AP_InertialNav& inav) :
     //_pi_precland_xy(pi_precland_xy),
     //_dt(dt),
     _have_estimate(false),
-    _backend(NULL)
+    _backend(NULL),
+    _distance_degrees(0.0)
 {
     // set parameters to defaults
     AP_Param::setup_object_defaults(this, var_info);
@@ -51,8 +61,17 @@ AC_PrecLand::AC_PrecLand(const AP_AHRS& ahrs, const AP_InertialNav& inav) :
     _backend_state.healthy = false;
 
     //ghm1: initialize correctly
-    _enabled = 1;
-    _type = 2;
+    //_enabled = 1;
+    //_type = 2;
+    //better: preclnd_enabled = 1 and preclnd_type = 2
+    _debug_output = 1;
+
+    _measure_image_distance = true;
+    _image_distance_estimate = false;
+
+    _numOfTargets = 0;
+    _distanceOfTargetsRad = 0.0;
+    _altitudeAboveTarget = 0.0;
 }
 
 
@@ -125,7 +144,6 @@ Vector3f AC_PrecLand::get_target_shift(const Vector3f &orig_target)
     return shift;
 }
 
-
 int first = 1;
 uint32_t oldtime = 0;
 
@@ -138,16 +156,93 @@ void AC_PrecLand::calc_angles_and_pos(float alt_above_terrain_cm)
     // exit immediately if not enabled
     if (_backend == NULL) {
         _have_estimate = false;
+        return;
     }
 
     // get body-frame angles to target from backend
     if (!_backend->get_angle_to_target(_bf_angle_to_target.x, _bf_angle_to_target.y)) {
         _have_estimate = false;
+
+        //in this case reset tone alarm
+        //AP_Notify::flags.target_in_cam_fov = 0;
+        _numOfTargets = 0;
+        _distanceOfTargetsRad = 0.0;
+        _altitudeAboveTarget = 0.0;
+
+        return;
+    }
+
+    //reset flag
+    _image_distance_estimate = false;
+    //update num of targets
+    _backend->getNumOfTargets(_numOfTargets);
+
+
+    //We want to detect exactly two targets to measure distance.
+    //The target position is then the middle of these two targets.
+    if( _measure_image_distance &&
+            _backend->get_angles_to_targets(_bf_angle_to_target_1.x, _bf_angle_to_target_1.y,
+            _bf_angle_to_target_2.x, _bf_angle_to_target_2.y))
+    {
+         float xWidth = fabs(_bf_angle_to_target_1.x - _bf_angle_to_target_2.x);
+         float yWidth = fabs(_bf_angle_to_target_1.y - _bf_angle_to_target_2.y);
+         //pythagoras an dieser stelle möglich, da es dem pytagors der pixelwerte entspricht, nur, dass kalibrierwert_pixel_per_rad
+         //bereits vorher verrechnet wurde
+         _distanceOfTargetsRad = pythagorous2(xWidth, yWidth);
+         _altitudeAboveTarget = TARGET_SIZE_M / tanf(_distanceOfTargetsRad);
+         _image_distance_estimate = true;
+
+         //find midpoint between two targets
+         //Vector2f midPtRad = (_bf_angle_to_target_1 + _bf_angle_to_target_2) / 2;
+    }
+    else
+    {
+        _distanceOfTargetsRad = 0.0;
+        _altitudeAboveTarget = 0.0;
     }
 
     // subtract vehicle lean angles
     float x_rad = _bf_angle_to_target.x - _ahrs.roll;
     float y_rad = -_bf_angle_to_target.y + _ahrs.pitch;
+
+    //check if we have to output an alarmtone and calculate euclidean distance
+    /*if( _debug_output && _debug_output < 3 )
+    {
+        if(_have_estimate)
+        {
+            _distance_degrees = abs(degrees(pythagorous2(x_rad,y_rad)));
+            if(_distance_degrees < 10.0)
+            {
+                AP_Notify::flags.target_in_cam_fov = 1;
+            }
+            else if(_distance_degrees < 20.0)
+            {
+                AP_Notify::flags.target_in_cam_fov = 2;
+            }
+            else if(_distance_degrees < 30.0)
+            {
+                AP_Notify::flags.target_in_cam_fov = 3;
+            }
+            else if(_distance_degrees < 40.0)
+            {
+                AP_Notify::flags.target_in_cam_fov = 4;
+            }
+            else
+            {
+                AP_Notify::flags.target_in_cam_fov = 0;
+            }
+        }
+        else
+        {
+            AP_Notify::flags.target_in_cam_fov = 0;
+        }
+    }*/
+
+    //ghm1 debug
+    _bf_offset_to_target.x = alt_above_terrain_cm * tanf(x_rad);
+    _bf_offset_to_target.y = alt_above_terrain_cm * tanf(y_rad);
+    //float bf_target_pos_offset_x = alt_above_terrain_cm * tanf(x_rad);
+    //float bf_target_pos_offset_y = alt_above_terrain_cm * tanf(y_rad);
 
     // rotate to earth-frame angles
     _ef_angle_to_target.x = y_rad*_ahrs.cos_yaw() - x_rad*_ahrs.sin_yaw();
@@ -155,6 +250,7 @@ void AC_PrecLand::calc_angles_and_pos(float alt_above_terrain_cm)
 
     // get current altitude (constrained to no lower than 50cm)
     float alt = max(alt_above_terrain_cm, 50.0f);
+    //float alt = alt_above_terrain_cm;
 
     // convert earth-frame angles to earth-frame position offset
 
@@ -162,36 +258,55 @@ void AC_PrecLand::calc_angles_and_pos(float alt_above_terrain_cm)
     _target_pos_offset.y = alt*tanf(_ef_angle_to_target.y);
     _target_pos_offset.z = 0;  // not used
 
-    if(first){
-        oldtime = hal.scheduler->millis();
-        first = 0;
-    }
-    uint32_t tnow = hal.scheduler->millis();
-    //message every second
-    uint32_t diff = tnow - oldtime;
-    if( diff > 1000 )
+    //output to console if activated by parameter settings
+    if(_debug_output > 1)
     {
-        oldtime = tnow;
-
-        if(_have_estimate)
-        {
-            //hal.console->printf("estimate correct\n");
+        if(first){
+            oldtime = hal.scheduler->millis();
+            first = 0;
         }
-        else
+        uint32_t tnow = hal.scheduler->millis();
+        //message every second
+        uint32_t diff = tnow - oldtime;
+        if( diff > 1000 )
         {
-            //hal.console->printf("no estimate\n");
-        }
+            oldtime = tnow;
 
-        /*hal.console->printf("roll: %f\n", _ahrs.roll);
-        hal.console->printf("pitch: %f\n", _ahrs.pitch);
-        hal.console->printf("bf_angle_to_target_x: %f\n", _bf_angle_to_target.x);
-        hal.console->printf("bf_angle_to_target_y: %f\n", _bf_angle_to_target.y);
-        hal.console->printf("ef_angle_to_target_x: %f\n", _ef_angle_to_target.x);
-        hal.console->printf("ef_angle_to_target_y: %f\n", _ef_angle_to_target.y);
-        hal.console->printf("alt_above_terrain_cm: %f\n", alt_above_terrain_cm);
-        hal.console->printf("target_pos_offset_x: %f\n", _target_pos_offset.x);
-        hal.console->printf("target_pos_offset_y: %f\n", _target_pos_offset.y);
-        hal.console->printf("\n");*/
+            /*if(_have_estimate)
+            {
+                hal.console->printf("estimate correct\n");
+            }
+            else
+            {
+                hal.console->printf("no estimate\n");
+            }*/
+
+            //hal.console->printf("target_in_cam_fov: %u\n", AP_Notify::flags.target_in_cam_fov);
+            //hal.console->printf("roll: %f\n", _ahrs.roll);
+            //hal.console->printf("pitch: %f\n", _ahrs.pitch);
+            //hal.console->printf("distance_degrees: %f\n", _distance_degrees);
+            //hal.console->printf("bf_angle_to_target_x: %f\n", _bf_angle_to_target.x);
+            //hal.console->printf("bf_angle_to_target_y: %f\n", _bf_angle_to_target.y);
+            //hal.console->printf("ef_angle_to_target_x: %f\n", _ef_angle_to_target.x);
+            //hal.console->printf("ef_angle_to_target_y: %f\n", _ef_angle_to_target.y);
+            //hal.console->printf("alt_above_terrain_cm: %f\n", alt_above_terrain_cm);
+            //hal.console->printf("target_pos_offset_x: %f\n", _target_pos_offset.x);
+            //hal.console->printf("target_pos_offset_y: %f\n", _target_pos_offset.y);
+
+            if(_image_distance_estimate)
+            {
+                hal.console->printf("widthRad: %f\n", _distanceOfTargetsRad);
+                hal.console->printf("altitudeAboveTarget: %f\n", _altitudeAboveTarget);
+                hal.console->printf("altitudeSonar %f\n", alt_above_terrain_cm);
+            }
+            else
+            {
+                hal.console->printf("no image_distance_estimate\n");
+                hal.console->printf("numOfTargets: %u\n", _numOfTargets);
+            }
+
+            hal.console->printf("\n");
+        }
     }
 
     //reset have_estimate

@@ -33,3 +33,18 @@ bool AC_PrecLand_Companion::get_angle_to_target(float &x_angle_rad, float &y_ang
 {
     return false;
 }
+
+// get_angles_to_targets - retrieve body frame x and y angles (in radians) to targets
+//  returns true if angles are available and there are exactly two targets, false if not (i.e. no target)
+bool AC_PrecLand_Companion::get_angles_to_targets(float &x_angle_rad_1, float &y_angle_rad_1,
+        float &x_angle_rad_2, float &y_angle_rad_2) const
+{
+    return false;
+}
+
+//get number of targets
+void AC_PrecLand_Companion::getNumOfTargets( uint8_t& numOfTargets ) const
+{
+    numOfTargets = 0;
+}
+

@@ -937,8 +937,15 @@
       <field name="cmd_id" type="uint8_t" enum="GOPRO_COMMAND">Command ID</field>
       <field name="result" type="uint8_t" enum="GOPRO_SET_RESPONSE_RESULT">Result</field>
     </message>
-
     <!-- 219 to 225 RESERVED for more GOPRO-->
+    
+    <message name="PRECISE_LANDING" id="226">
+      <description>Information to optimize automatic precision landing</description>
+      <field type="uint8_t" name="num_of_targets">number of detected targets</field>
+      <field type="float" name="target_z_distance">z distance above target ground</field>
+      <field type="float" name="bf_offset_x">x offset of target to body frame</field>
+      <field type="float" name="bf_offset_y">y offset of target to body frame</field>
+    </message>    
 
      </messages>
 </mavlink>

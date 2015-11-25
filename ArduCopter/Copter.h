@@ -571,6 +571,8 @@ private:
     void set_pre_arm_rc_check(bool b);
     void set_using_interlock(bool b);
     void set_motor_emergency_stop(bool b);
+    //ghm1
+    //void set_target_in_cam_fov(uint8_t b);
     float get_smoothing_gain();
     void get_pilot_desired_lean_angles(float roll_in, float pitch_in, float &roll_out, float &pitch_out);
     float get_pilot_desired_yaw_rate(int16_t stick_angle);
@@ -604,6 +606,9 @@ private:
     void send_rangefinder(mavlink_channel_t chan);
     void send_pid_tuning(mavlink_channel_t chan);
     void send_statustext(mavlink_channel_t chan);
+#if PRECISION_LANDING == ENABLED
+    void send_precise_landing(mavlink_channel_t chan);
+#endif
     bool telemetry_delayed(mavlink_channel_t chan);
     void gcs_send_message(enum ap_message id);
     void gcs_data_stream_send(void);

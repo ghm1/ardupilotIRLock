@@ -59,7 +59,8 @@ enum ap_message {
     MSG_EKF_STATUS_REPORT,
     MSG_LOCAL_POSITION,
     MSG_PID_TUNING,
-    MSG_VIBRATION,
+    //MSG_VIBRATION,
+    MSG_PRECISE_LANDING,
     MSG_RETRY_DEFERRED // this must be last
 };
 

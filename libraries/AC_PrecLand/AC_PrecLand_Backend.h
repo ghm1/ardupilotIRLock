@@ -33,6 +33,18 @@ public:
     //  y_angle_rad : body-frame pitch direction, postiive = target is forward (looking down)
     virtual bool get_angle_to_target(float &x_angle_rad, float &y_angle_rad) const = 0;
 
+    // get_angles_to_targets - return body frame angles (in radians) to two targets
+    // returns true if the number of detected targets are exactly two, only then target detection can be reliable
+    //  x_angle_rad_1 : body-frame roll direction, positive = target is to right (looking down)
+    //  y_angle_rad_1 : body-frame pitch direction, positive = target is forward (looking down)
+    //  x_angle_rad_2 : body-frame roll direction, positive = target is to right (looking down)
+    //  y_angle_rad_2 : body-frame pitch direction, positive = target is forward (looking down)
+    virtual bool get_angles_to_targets(float &x_angle_rad_1, float &y_angle_rad_1,
+            float &x_angle_rad_2, float &y_angle_rad_2) const = 0;
+
+    //get number of targets
+    virtual void getNumOfTargets( uint8_t& numOfTargets ) const = 0;
+
 protected:
 
     const AC_PrecLand&  _frontend;          // reference to precision landing front end

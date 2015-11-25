@@ -33,6 +33,18 @@ public:
     //  y_angle_rad : body-frame pitch direction, postiive = target is forward (looking down)
     bool get_angle_to_target(float &x_angle_rad, float &y_angle_rad) const;
 
+    // get_angles_to_targets - return body frame angles (in radians) to two targets
+    // returns true if the number of detected targets are exactly two, only then target detection can be reliable
+    //  x_angle_rad_1 : body-frame roll direction, positive = target is to right (looking down)
+    //  y_angle_rad_1 : body-frame pitch direction, positive = target is forward (looking down)
+    //  x_angle_rad_2 : body-frame roll direction, positive = target is to right (looking down)
+    //  y_angle_rad_2 : body-frame pitch direction, positive = target is forward (looking down)
+    bool get_angles_to_targets(float &x_angle_rad_1, float &y_angle_rad_1,
+            float &x_angle_rad_2, float &y_angle_rad_2) const;
+
+    //get number of targets
+    void getNumOfTargets( uint8_t& numOfTargets ) const;
+
 private:
     AP_IRLock_PX4 irlock;
 

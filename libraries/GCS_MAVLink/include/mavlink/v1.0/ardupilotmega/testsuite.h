@@ -2730,6 +2730,52 @@ static void mavlink_test_gopro_set_response(uint8_t system_id, uint8_t component
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
 
+static void mavlink_test_precise_landing(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+{
+	mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+        uint16_t i;
+	mavlink_precise_landing_t packet_in = {
+		17.0,45.0,73.0,41
+    };
+	mavlink_precise_landing_t packet1, packet2;
+        memset(&packet1, 0, sizeof(packet1));
+        	packet1.target_z_distance = packet_in.target_z_distance;
+        	packet1.bf_offset_x = packet_in.bf_offset_x;
+        	packet1.bf_offset_y = packet_in.bf_offset_y;
+        	packet1.num_of_targets = packet_in.num_of_targets;
+        
+        
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_precise_landing_encode(system_id, component_id, &msg, &packet1);
+	mavlink_msg_precise_landing_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_precise_landing_pack(system_id, component_id, &msg , packet1.num_of_targets , packet1.target_z_distance , packet1.bf_offset_x , packet1.bf_offset_y );
+	mavlink_msg_precise_landing_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_precise_landing_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.num_of_targets , packet1.target_z_distance , packet1.bf_offset_x , packet1.bf_offset_y );
+	mavlink_msg_precise_landing_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+        mavlink_msg_to_send_buffer(buffer, &msg);
+        for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
+        	comm_send_ch(MAVLINK_COMM_0, buffer[i]);
+        }
+	mavlink_msg_precise_landing_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+        
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_precise_landing_send(MAVLINK_COMM_1 , packet1.num_of_targets , packet1.target_z_distance , packet1.bf_offset_x , packet1.bf_offset_y );
+	mavlink_msg_precise_landing_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+}
+
 static void mavlink_test_ardupilotmega(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 	mavlink_test_sensor_offsets(system_id, component_id, last_msg);
@@ -2789,6 +2835,7 @@ static void mavlink_test_ardupilotmega(uint8_t system_id, uint8_t component_id, 
 	mavlink_test_gopro_get_response(system_id, component_id, last_msg);
 	mavlink_test_gopro_set_request(system_id, component_id, last_msg);
 	mavlink_test_gopro_set_response(system_id, component_id, last_msg);
+	mavlink_test_precise_landing(system_id, component_id, last_msg);
 }
 
 #ifdef __cplusplus
